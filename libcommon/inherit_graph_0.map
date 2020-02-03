@@ -1,0 +1,6 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classsbronsted_1_1NotAuthorizedException.html" title="sbronsted\\NotAuthorizedException" alt="" coords="5,31,229,57"/>
+<area shape="rect" id="node2" href="$classsbronsted_1_1ApplicationException.html" title="sbronsted\\ApplicationException" alt="" coords="277,31,483,57"/>
+<area shape="rect" id="node3" href="$classsbronsted_1_1MandatoryException.html" title="sbronsted\\MandatoryException" alt="" coords="531,5,733,32"/>
+<area shape="rect" id="node4" href="$classsbronsted_1_1ValidationException.html" title="sbronsted\\ValidationException" alt="" coords="533,56,731,83"/>
+</map>
