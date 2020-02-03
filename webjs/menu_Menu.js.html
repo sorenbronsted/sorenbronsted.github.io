@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: menu/Menu.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: menu/Menu.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const collect = require('collect.js');
+
+/**
+ * Menu is the data for html anchors of data-type menu. This is organized as at tree.
+ * A menu has an uniq id, an url and a optional parameter name. When the parameter name is 'uid' the value of the uid is
+ * appended to the url path. Otherwise it is appended as parameter to the url.
+ * The menu maintains it state whether it is visible or not and selected or not.
+ */
+class Menu {
+	/**
+	 * @param {int} uid
+	 * 	A uniq id
+	 * @param {string} url
+	 * 	A url for this menu
+	 * @param {string} parameterName
+	 * 	The name of parameter.
+	 */
+	constructor(uid, url, parameterName) {
+		this.uid = uid;
+		this._visible = false; // Is visible if any of the nodes in a subtree is selected
+		this._selected = false; // Selected marks the path of selected nodes to the leaf
+
+		this._url = url;
+		this._children = collect([]);
+		this._parameterName = parameterName;
+		this._parameterValue = null;
+	}
+
+	/**
+	 * Tells whether this menu is visible or not.
+	 * @returns {boolean}
+	 */
+	get visible() {
+		return this._visible;
+	}
+
+	/**
+	 * Tells whether this menu is selected or not.
+	 * @returns {boolean}
+	 */
+	get selected() {
+		return this._selected;
+	}
+
+	/**
+	 * Gets the calculated url for this menu.
+	 * @returns {string}
+	 * 	The calculated url
+	 */
+	get url() {
+		if (this._parameterName !== undefined) {
+			if (this._parameterValue != null) {
+				if (this._parameterName === 'uid') {
+					return this._url.concat('/', this._parameterValue);
+				}
+				return this._url.concat('?', this._parameterName, '=', this._parameterValue);
+			}
+			else {
+				return '';
+			}
+		}
+		return this._url;
+	}
+
+	/**
+	 * Find a menu with by uid
+	 * @param {int} uid
+	 * 	The search uid
+	 * @returns {Menu|null}
+	 * 	If found it returns the menu otherwise null
+	 */
+	getByUid(uid) {
+		if (typeof uid === 'string') {
+			uid = parseInt(uid);
+		}
+		if (this.uid === uid) {
+			return this;
+		}
+		let result = null;
+		this._children.each(item => {
+			result = item.getByUid(uid);
+			if (result != null) {
+				return false; // stop iterating
+			}
+		});
+		return result;
+	}
+
+	/**
+	 * Set the value of the parameter name for this menu and its children.
+	 * @param {collect} args
+	 * 	A set of parameter values.
+	 */
+	setParameter(args) {
+		if (args.has(this._parameterName)) {
+			if (this._parameterName === 'uid') {
+				let url = '/detail/'+args.get('proxy');
+				if (this._url === url) {
+					this._parameterValue = args.get(this._parameterName);
+				}
+			}
+			else {
+				this._parameterValue = args.get(this._parameterName);
+			}
+		}
+		this._children.each(child => {
+			child.setParameter(args);
+		});
+	}
+
+	/**
+	 * Add a child menu to this menu
+	 * @param {Menu} data
+	 * 	The child menu to be added
+	 * @returns {Menu}
+	 * 	The given child menu
+	 */
+	push(data) {
+		this._children.push(data);
+		return data;
+	}
+
+	/**
+	 * Find a menu in this menu or its children which matches a given url
+	 * @param {string} url
+	 * 	The given url
+	 */
+	select(url) {
+		// Find the node which is selected
+		if (this.url === url) {
+			this._selected = true;
+			// If this node has children then select the first node also
+			if (this._children.isNotEmpty()) {
+				this._children.first()._selected = true;
+			}
+		}
+		else {
+			this._children.each(child => child.select(url));
+			if (this.uid > 0) {
+				this._selected = this._children.first(elem => elem.selected) != null;
+			}
+		}
+	}
+
+	/**
+	 * Find a menu in this menu or its children which matches a given url
+	 * @param {string} url
+	 * @returns {boolean}
+	 * 	True when found otherwise false
+	 */
+	hasMatch(url) {
+		let found = false;
+		if (this.url === url) {
+			found = true;
+		}
+		else {
+			this._children.each(child => {
+				if (child.hasMatch(url)) {
+					found = true;
+					return false;
+				}
+			});
+		}
+		return found;
+	}
+
+	/**
+	 * Ensure that the menu and it's intermediate children are visible.
+	 */
+	ensureVisible() {
+		// Children off root ar allways visible
+		if (this.uid === 0) {
+			this._children.each(child => child._visible = true);
+		}
+		else {
+			// found is not the root node, but this node or any child node that is selected
+			let found = (this._selected || this._children.filter(elem => elem._selected).count() > 0);
+
+			// if found make children visible or look in the rest of the tree
+			if (found) {
+				this._visible = true;
+				this._children.each(child => child._visible = true);
+			}
+		}
+		this._children.each(child => child.ensureVisible());
+	}
+
+	/**
+	 * Resets this menu and all it's to a known state which not visible and not selected
+	 */
+	reset() {
+		this._visible = false;
+		this._selected = false;
+		this._children.each(child => child.reset());
+	}
+}
+exports.Menu = Menu;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-menu.html">menu</a></li><li><a href="module-mvc.html">mvc</a></li></ul><h3>Classes</h3><ul><li><a href="Anchor.html">Anchor</a></li><li><a href="AnchorCss.html">AnchorCss</a></li><li><a href="AnchorCssBootStrap.html">AnchorCssBootStrap</a></li><li><a href="AnchorCssW3.html">AnchorCssW3</a></li><li><a href="App.html">App</a></li><li><a href="ApplicationException.html">ApplicationException</a></li><li><a href="BaseController.html">BaseController</a></li><li><a href="BaseProxy.html">BaseProxy</a></li><li><a href="CrudProxy.html">CrudProxy</a></li><li><a href="CurrentViewState.html">CurrentViewState</a></li><li><a href="DataTypeMenuWrapper.html">DataTypeMenuWrapper</a></li><li><a href="DetailController.html">DetailController</a></li><li><a href="ElementValue.html">ElementValue</a></li><li><a href="Event.html">Event</a></li><li><a href="InputCss.html">InputCss</a></li><li><a href="InputCssBootStrap.html">InputCssBootStrap</a></li><li><a href="InputCssW3.html">InputCssW3</a></li><li><a href="ListController.html">ListController</a></li><li><a href="Menu.html">Menu</a></li><li><a href="MenuCtrl.html">MenuCtrl</a></li><li><a href="MenuProxy.html">MenuProxy</a></li><li><a href="Observer.html">Observer</a></li><li><a href="Repo.html">Repo</a></li><li><a href="Rest.html">Rest</a></li><li><a href="RestStore.html">RestStore</a></li><li><a href="Router.html">Router</a></li><li><a href="StateMachine.html">StateMachine</a></li><li><a href="Subject.html">Subject</a></li><li><a href="TableCss.html">TableCss</a></li><li><a href="TableCssBootStrap.html">TableCssBootStrap</a></li><li><a href="TableCssW3.html">TableCssW3</a></li><li><a href="Transition.html">Transition</a></li><li><a href="View.html">View</a></li><li><a href="ViewCss.html">ViewCss</a></li><li><a href="ViewCssW3.html">ViewCssW3</a></li></ul><h3>Interfaces</h3><ul><li><a href="Store.html">Store</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Mon Feb 03 2020 11:48:22 GMT+0100 (Central European Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: mvc/RestStore.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: mvc/RestStore.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const collect = require('collect.js');
+const Store = require('./Store.js').Store;
+
+/**
+ * This class implements the Store api and transforms it to librest rest calls.
+ * @implements Store
+ */
+class RestStore extends Store {
+	constructor(rest, formDataConstructor) {
+		super();
+		this._rest = rest;
+		this._formDataConstructor = formDataConstructor;
+	}
+
+	read(cls, params, method) {
+		let url = `/rest/${cls}`;
+
+		if (params !== undefined &amp;&amp; params.keys().isNotEmpty()) {
+			if (params.constructor.name !== 'Collection') {
+				throw Error(`Parameters is of unsuported type: ${params.constructor.name}`);
+			}
+
+			if (params.has('uid')) {
+				url = url.concat('/', params.get('uid'));
+				params.forget('uid');
+			}
+			if (method != null) {
+				url = url.concat('/', method);
+			}
+			if (!params.keys().isEmpty()) {
+				let args = this._encodeMap(params);
+				url = url.concat('?', args);
+			}
+		}
+		else {
+			if (method != null) {
+				url = url.concat('/', method);
+			}
+		}
+		return this._rest.get(url);
+	}
+
+	delete(cls, uid) {
+		if (uid === undefined) {
+			throw Error("Must a have an uid");
+		}
+		return this._rest.delete(`/rest/${cls}/${uid}`);
+	}
+
+	update(cls, data, method) {
+		let url = `/rest/${cls}`;
+		if (data.uid !== undefined) {
+			url = url.concat('/', data.uid);
+		}
+		if (method !== undefined) {
+			url = url.concat('/', method);
+		}
+		let formData = this._formData(data);
+		return this._rest.post(url, formData);
+	}
+
+	_encodeMap(data) {
+		if (data.constructor.name !== 'Collection') {
+			throw Error(`Data is of unsuported type: ${data.constructor.name}`);
+		}
+		let result = '';
+		data.each((value, name) => {
+			if (result.length > 0) {
+				result = result.concat(('&amp;'));
+			}
+			if (value === undefined || value === null) {
+				value = 'null';
+			}
+			else if (value.constructor.name === 'Object') {
+				value = JSON.stringify(value);
+			}
+			result = result.concat(name,'=',encodeURI(value));
+		});
+		return result;
+	}
+
+	_formData(data) {
+		let result = new this._formDataConstructor();
+		if (data === undefined || data === null) {
+			return result;
+		}
+		switch(data.constructor.name) {
+			case 'Collection':
+				data.each((value, key) => this._populate(result, key, value));
+				break;
+			case 'Object':
+				collect(data).each((value, key) => this._populate(result, key, value));
+				break;
+			case 'FileList':
+				for (let i = 0; i &lt; data.length; i++) {
+					result.append('files[]', data[i]);
+				}
+				break;
+			default:
+				throw Error(`Data is of unsuported type: ${data.constructor.name}`);
+		}
+		return result;
+	}
+
+	_populate(formData, name, value) {
+		if (value == null) {
+			formData.append(name, value);
+		}
+		else {
+			switch(value.constructor.name) {
+				case 'Collection':
+					formData.append(name, value.toJson());
+					break;
+				case 'Object':
+					formData.append(name, JSON.stringify(value));
+					break;
+				case 'File':
+					formData.append(name, value);
+					break;
+				case 'FileList':
+					for (let i = 0; i &lt; value.length; i++) {
+						formData.append(`${name}[]`, value[i]);
+					}
+					break;
+				default:
+					formData.append(name, value);
+			}
+		}
+	}
+}
+exports.RestStore = RestStore;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-menu.html">menu</a></li><li><a href="module-mvc.html">mvc</a></li></ul><h3>Classes</h3><ul><li><a href="Anchor.html">Anchor</a></li><li><a href="AnchorCss.html">AnchorCss</a></li><li><a href="AnchorCssBootStrap.html">AnchorCssBootStrap</a></li><li><a href="AnchorCssW3.html">AnchorCssW3</a></li><li><a href="App.html">App</a></li><li><a href="ApplicationException.html">ApplicationException</a></li><li><a href="BaseController.html">BaseController</a></li><li><a href="BaseProxy.html">BaseProxy</a></li><li><a href="CrudProxy.html">CrudProxy</a></li><li><a href="CurrentViewState.html">CurrentViewState</a></li><li><a href="DataTypeMenuWrapper.html">DataTypeMenuWrapper</a></li><li><a href="DetailController.html">DetailController</a></li><li><a href="ElementValue.html">ElementValue</a></li><li><a href="Event.html">Event</a></li><li><a href="InputCss.html">InputCss</a></li><li><a href="InputCssBootStrap.html">InputCssBootStrap</a></li><li><a href="InputCssW3.html">InputCssW3</a></li><li><a href="ListController.html">ListController</a></li><li><a href="Menu.html">Menu</a></li><li><a href="MenuCtrl.html">MenuCtrl</a></li><li><a href="MenuProxy.html">MenuProxy</a></li><li><a href="Observer.html">Observer</a></li><li><a href="Repo.html">Repo</a></li><li><a href="Rest.html">Rest</a></li><li><a href="RestStore.html">RestStore</a></li><li><a href="Router.html">Router</a></li><li><a href="StateMachine.html">StateMachine</a></li><li><a href="Subject.html">Subject</a></li><li><a href="TableCss.html">TableCss</a></li><li><a href="TableCssBootStrap.html">TableCssBootStrap</a></li><li><a href="TableCssW3.html">TableCssW3</a></li><li><a href="Transition.html">Transition</a></li><li><a href="View.html">View</a></li><li><a href="ViewCss.html">ViewCss</a></li><li><a href="ViewCssW3.html">ViewCssW3</a></li></ul><h3>Interfaces</h3><ul><li><a href="Store.html">Store</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Mon Feb 03 2020 11:48:22 GMT+0100 (Central European Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

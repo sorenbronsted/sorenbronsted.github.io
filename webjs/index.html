@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1>Webui.js</h1>
+<p>Webui.js is a <a href="https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller">Model-View-Controller</a>
+implementation for <a href="https://en.wikipedia.org/wiki/Single-page_application">Single-Page-Application</a> in a browser</p>
+<p><img src="https://github.com/sorenbronsted/webui.js/workflows/CI/badge.svg" alt=""></p>
+<h2>Introduction</h2>
+<p>Writing the client part of a business application can be a complex piece of software, and the best way to tame such a
+complex thing is to have <a href="https://en.wikipedia.org/wiki/Cohesion_(computer_science)">high cohesion</a> for robustness,
+reliability, reusability. and <a href="https://en.wikipedia.org/wiki/Loose_coupling">loose coupling</a> for encapsulation,
+so changes in one place does not affect other places.</p>
+<p>Mvc architecture is implemented by using the <a href="https://en.wikipedia.org/wiki/Observer_pattern">observer pattern</a>
+where the model and view are subjects and the controller is an observer.</p>
+<h2>How is data mapped to html elements?</h2>
+<p>Image you have a person defined by this class:</p>
+<pre class="prettyprint source"><code>class Person {
+  constructor(name,addess,zipcode,town) {
+    this.name = name;
+    this.address = address;
+    this.zipcode = zipcode;
+    this.town = town;
+  }
+
+  ...    
+}
+</code></pre>
+<p>Then <code>name</code> property is mapped to an html element like  this <code>input</code> element:</p>
+<pre class="prettyprint source"><code>&lt;input data-class=&quot;Person&quot; data-property=&quot;name&quot;>
+</code></pre>
+<p>or all the properties is mapped to input elements in a form element like this:</p>
+<pre class="prettyprint source"><code>&lt;form data-class=&quot;Person&quot;>
+  &lt;input data-property=&quot;name&quot;>
+  &lt;input data-property=&quot;address&quot;>
+  &lt;input data-property=&quot;zipcode&quot;>
+  &lt;input data-property=&quot;town&quot;>
+&lt;/form>
+</code></pre>
+<p>Here the html input elements inherits the <code>data-class</code> information from the parent element.
+The view has html fragment which it is responsible for, and which is shown on demand from the controller.</p>
+<h2>How is data flowing?</h2>
+<p>The data flows between MVC elements by events to have loose coupling. The event is defined like this:</p>
+<pre class="prettyprint source"><code>class Event {
+  constructor(sender, name, body) {
+    this.sender = sender;
+    this.name = name;
+    this.body = body;
+  }
+}
+</code></pre>
+<p>The view sends the following events when:</p>
+<ul>
+<li>a input element has changed , the name of event is <code>propertyChanged</code>, with the name of the property
+and the new value in the body</li>
+<li>an anchor element is clicked, the name of the event is <code>click</code>, with url information in the body</li>
+<li>a button is pressed, the name of the event is the <code>data-property</code> from the button</li>
+</ul>
+<p>The model sends the following events when:</p>
+<ul>
+<li>data is available from an asynchronous/rest call, the  name of the event is <code>ok</code> with the data in the body</li>
+<li>the asynchronous/rest call fails, the name of the event is <code>fail</code> with information in body</li>
+</ul>
+<h2>How is the data flow controlled?</h2>
+<p>A controller overrides the <code>handleEvent</code> method and can thereby reacts to events send to it, and
+transforms them to method calls on the model or the view.
+Manage the state of the controller can be complex, so to help with this, you can use a state machine to do that.</p>
+<h2>How is the application controlled?</h2>
+<p>To manage the state of the application i done by the dom location object, which the router reacts to.
+The router is a subject and all controllers listen for event from it, and uses it to change the location.
+Every controller has an activation url and when there is a match between this url and the url from the router,
+then the controller is active. When the url's does not match then it is not active. In this way you can control
+whether a controller shall react to events or not.</p></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-menu.html">menu</a></li><li><a href="module-mvc.html">mvc</a></li></ul><h3>Classes</h3><ul><li><a href="Anchor.html">Anchor</a></li><li><a href="AnchorCss.html">AnchorCss</a></li><li><a href="AnchorCssBootStrap.html">AnchorCssBootStrap</a></li><li><a href="AnchorCssW3.html">AnchorCssW3</a></li><li><a href="App.html">App</a></li><li><a href="ApplicationException.html">ApplicationException</a></li><li><a href="BaseController.html">BaseController</a></li><li><a href="BaseProxy.html">BaseProxy</a></li><li><a href="CrudProxy.html">CrudProxy</a></li><li><a href="CurrentViewState.html">CurrentViewState</a></li><li><a href="DataTypeMenuWrapper.html">DataTypeMenuWrapper</a></li><li><a href="DetailController.html">DetailController</a></li><li><a href="ElementValue.html">ElementValue</a></li><li><a href="Event.html">Event</a></li><li><a href="InputCss.html">InputCss</a></li><li><a href="InputCssBootStrap.html">InputCssBootStrap</a></li><li><a href="InputCssW3.html">InputCssW3</a></li><li><a href="ListController.html">ListController</a></li><li><a href="Menu.html">Menu</a></li><li><a href="MenuCtrl.html">MenuCtrl</a></li><li><a href="MenuProxy.html">MenuProxy</a></li><li><a href="Observer.html">Observer</a></li><li><a href="Repo.html">Repo</a></li><li><a href="Rest.html">Rest</a></li><li><a href="RestStore.html">RestStore</a></li><li><a href="Router.html">Router</a></li><li><a href="StateMachine.html">StateMachine</a></li><li><a href="Subject.html">Subject</a></li><li><a href="TableCss.html">TableCss</a></li><li><a href="TableCssBootStrap.html">TableCssBootStrap</a></li><li><a href="TableCssW3.html">TableCssW3</a></li><li><a href="Transition.html">Transition</a></li><li><a href="View.html">View</a></li><li><a href="ViewCss.html">ViewCss</a></li><li><a href="ViewCssW3.html">ViewCssW3</a></li></ul><h3>Interfaces</h3><ul><li><a href="Store.html">Store</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Mon Feb 03 2020 11:48:22 GMT+0100 (Central European Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

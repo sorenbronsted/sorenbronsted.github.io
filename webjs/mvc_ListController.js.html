@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: mvc/ListController.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: mvc/ListController.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const collect = require('collect.js');
+const BaseController = require('./BaseController.js').BaseController;
+const Router = require('./Router.js').Router;
+const Transition = require('./Transition.js').Transition;
+
+/**
+ * This class added an find and delete state for handling events find and delete.
+ * &lt;img src="mvc/ListControllerState.png">
+ */
+class ListController extends BaseController {
+
+	constructor(activationUri, repo, view) {
+		super(activationUri, repo, view);
+	}
+
+	/**
+	 * Adds states create,find and delete to exists states in super class.
+	 */
+	populateStateMachine() {
+		super.populateStateMachine();
+
+		this.states.find = 'find';
+		this.states.delete = 'delete';
+		this.states.create = 'create';
+
+		// Start to Input is handled in super
+		// Input
+		this.addTransition(new Transition(this.states.input, this.states.find, this.find, this.canFind));
+		this.addTransition(new Transition(this.states.input, this.states.delete, this.delete, this.canDelete));
+		this.addTransition(new Transition(this.states.input, this.states.start, this.create, this.canCreate));
+		this.addTransition(new Transition(this.states.input, this.states.start, this.edit, this.canEdit));
+		this.addTransition(new Transition(this.states.input, this.states.start, this.children, this.canChildren));
+		this.addTransition(new Transition(this.states.input, this.states.start, this.back, this.canBack));
+		// Find
+		this.addTransition(new Transition(this.states.find, this.states.input, this.populate, this.canPopulate));
+		this.addTransition(new Transition(this.states.find, this.states.input, this.fail, this.hasFailed));
+		// Delete
+		this.addTransition(new Transition(this.states.delete, this.states.find, this.find, this.canFind));
+		this.addTransition(new Transition(this.states.delete, this.states.input, this.fail, this.hasFailed));
+	}
+
+	/**
+	 * Tells if the event.name == 'edit' or not.
+	 * @param {Event} event
+	 * 	The event
+	 * @returns {boolean}
+	 * 	true when event is edit other false
+	 */
+	canEdit(event) {
+		return event.name === 'edit';
+	}
+
+	/**
+	 * Goto to the edit url which is &lt;code>/detail/someClass/someObjectUid&lt;/code>
+	 * @param {event} event
+	 */
+	edit(event) {
+		this.repo.get(Router.name).goto(`/detail/${event.body.cls}/${event.body.uid}`);
+	}
+
+	/**
+	 * Tells if the event.name == 'create' or not.
+	 * @param {Event} event
+	 * 	The event
+	 * @returns {boolean}
+	 * 	true when event is create other false
+	 */
+	canCreate(event) {
+		return event.name === 'create';
+	}
+
+	/**
+	 * Goto to the create url which is &lt;code>/detail/someClass/new&lt;/code>
+	 * @param {event} event
+	 */
+	create(event) {
+		this.repo.get(Router.name).goto(`/detail/${event.body.cls}/new`);
+	}
+
+	/**
+	 * Tells if the event.name == 'children' or not.
+	 * @param {Event} event
+	 * 	The event
+	 * @returns {boolean}
+	 * 	true when event is children other false
+	 */
+	canChildren(event) {
+		return event.name === 'children';
+	}
+
+	/**
+	 * Goto to the children url from event.body.value
+	 * @param {event} event
+	 */
+	children(event) {
+		this.repo.get(Router.name).goto(event.body.value);
+	}
+
+	/**
+	 * Tells if the event.name == 'back'
+	 * @param {Event} event
+	 * 	The event
+	 * @returns {boolean}
+	 * 	true when failed other false
+	 */
+	canBack(event) {
+		return event.name === 'back';
+	}
+
+	/**
+	 * Ask the router to go back
+	 * @param {Event} event
+	 * 	The event
+	 */
+	back(event) {
+		this.repo.get(Router.name).back();
+	}
+
+	/**
+	 * Tells if the event.name == 'delete' and the user wants to delete selected item
+	 * @param {Event} event
+	 * 	The event
+	 * @returns {boolean}
+	 * 	true when event is delete and user reponse is ok other false
+	 */
+	canDelete(event) {
+		return event.name === 'delete' &amp;&amp;	this.view.confirm('Er du sikker på du vil slette denne?');
+	}
+
+	/**
+	 * Tell the proxy to delete chosen element
+	 * @param {Event} event
+	 * 	The event
+	 */
+	delete(event) {
+		let proxy = this.repo.get(event.body.cls);
+		proxy.delete(event.body.uid);
+	}
+
+	/**
+	 * Tells if the event.name == 'find' or not.
+	 * @param {Event} event
+	 * 	The event
+	 * @returns {boolean}
+	 * 	true when event is find other false
+	 */
+	canFind(event) {
+		//TODO this looks a little funny
+		if (event.sender === Router.name) {
+			return false;
+		}
+		try {
+			let proxy = this.repo.get(event.sender);
+			return event.name === proxy.eventOk;
+		}
+		catch (e) {
+			return event.name === this.states.find;
+		}
+	}
+
+	/**
+	 * Tell the proxy to find objects
+	 * @param {Event} event
+	 * 	The event
+	 */
+	find(event) {
+		let proxy = this.repo.get(event.body == null ? event.sender : event.body.cls);
+		proxy.read();
+	}
+}
+exports.ListController = ListController;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-menu.html">menu</a></li><li><a href="module-mvc.html">mvc</a></li></ul><h3>Classes</h3><ul><li><a href="Anchor.html">Anchor</a></li><li><a href="AnchorCss.html">AnchorCss</a></li><li><a href="AnchorCssBootStrap.html">AnchorCssBootStrap</a></li><li><a href="AnchorCssW3.html">AnchorCssW3</a></li><li><a href="App.html">App</a></li><li><a href="ApplicationException.html">ApplicationException</a></li><li><a href="BaseController.html">BaseController</a></li><li><a href="BaseProxy.html">BaseProxy</a></li><li><a href="CrudProxy.html">CrudProxy</a></li><li><a href="CurrentViewState.html">CurrentViewState</a></li><li><a href="DataTypeMenuWrapper.html">DataTypeMenuWrapper</a></li><li><a href="DetailController.html">DetailController</a></li><li><a href="ElementValue.html">ElementValue</a></li><li><a href="Event.html">Event</a></li><li><a href="InputCss.html">InputCss</a></li><li><a href="InputCssBootStrap.html">InputCssBootStrap</a></li><li><a href="InputCssW3.html">InputCssW3</a></li><li><a href="ListController.html">ListController</a></li><li><a href="Menu.html">Menu</a></li><li><a href="MenuCtrl.html">MenuCtrl</a></li><li><a href="MenuProxy.html">MenuProxy</a></li><li><a href="Observer.html">Observer</a></li><li><a href="Repo.html">Repo</a></li><li><a href="Rest.html">Rest</a></li><li><a href="RestStore.html">RestStore</a></li><li><a href="Router.html">Router</a></li><li><a href="StateMachine.html">StateMachine</a></li><li><a href="Subject.html">Subject</a></li><li><a href="TableCss.html">TableCss</a></li><li><a href="TableCssBootStrap.html">TableCssBootStrap</a></li><li><a href="TableCssW3.html">TableCssW3</a></li><li><a href="Transition.html">Transition</a></li><li><a href="View.html">View</a></li><li><a href="ViewCss.html">ViewCss</a></li><li><a href="ViewCssW3.html">ViewCssW3</a></li></ul><h3>Interfaces</h3><ul><li><a href="Store.html">Store</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Mon Feb 03 2020 11:48:22 GMT+0100 (Central European Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: mvc/CrudProxy.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: mvc/CrudProxy.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const collect = require('collect.js');
+const BaseProxy = require('./BaseProxy.js').BaseProxy;
+const Event = require('./Event.js').Event;
+
+/**
+ * This class provides the basic Create,Read,Update and Delete (CRUD) operations which are needed by almost any proxy,
+ * which need to persistent anything.
+ */
+class CrudProxy extends BaseProxy {
+
+	/**
+	 * @param {Store} store
+	 * 	The delegate which provides the actual storing
+	 */
+	constructor(store) {
+		super();
+		this._store = store;
+		this._method = null;
+
+		// const
+		this.eventOk = `proxyOk`;
+		this.eventFail = `proxyFail`;
+	}
+
+	/**
+	 * Gets the store
+	 * @returns {Store}
+	 * 	The store interface
+	 */
+	get store() {
+		return this._store;
+	}
+
+	/**
+	 * Gets the name of the method to use when calling the store
+	 * @returns {string|null}
+	 * 	Then name of the method
+	 */
+	get method() {
+		return this._method;
+	}
+
+	/**
+	 * Sets the name of method to call og the next store operation og unset it by setting the to null
+	 * @returns {string|null}
+	 * 	Then name of the method
+	 */
+	set method(method) {
+		this._method = method;
+	}
+
+	/**
+	 * Create a new object and notify listeners. The object will hae uid == 0.
+	 */
+	create() {
+		const uid = 0;
+		const object = {};
+		object.class = this.cls;
+		object.uid = uid;
+		this.add(object);
+		this.fire(new Event(this.cls, this.eventOk, this.get(uid)));
+	}
+
+	/**
+	 * Get some objects by an optional uid or by the filter and notify listeners on available objects
+	 * @param {int} uid
+	 * 	The uid to find
+	 */
+	read(uid) {
+		if (uid != null) {
+			if (this.has(uid) &amp;&amp; !this.isDirty(uid)) {
+				this.fire(new Event(this.cls, this.eventOk, this.get(uid)));
+			}
+			else {
+				this._store.read(this.cls, collect({uid:uid}), this._method).then(row => {
+					this.add(row);
+					this.fire(new Event(this.cls, this.eventOk, this.get(uid)));
+				}).catch(error => {
+					this.fire(new Event(this.cls, this.eventFail, error));
+				});
+			}
+		}
+		else {
+			this._store.read(this.cls, collect(this.filterBy), this._method).then(rows => {
+				this.addAll(collect(rows));
+				this.fire(new Event(this.cls, this.eventOk, this.getAll()));
+			}).catch(error => {
+				this.fire(new Event(this.cls, this.eventFail, error));
+			});
+		}
+	}
+
+	/**
+	 * Delete some object by uid and notify listeners when complete
+	 * @param {int} uid
+	 * 	Then uid of the object to delete
+	 */
+	delete(uid) {
+		this.remove(uid);
+		this._store.delete(this.cls, uid).then(() => {
+			this.fire(new Event(this.cls, this.eventOk));
+		}).catch(error => {
+			this.fire(new Event(this.cls, this.eventFail, error));
+		});
+	}
+
+	/**
+	 * Update an object identified by uid and notify listeners when complete
+	 * @param {int} uid
+	 * 	Then uid of the object to update
+	 */
+	update(uid) {
+		this._store.update(this.cls, this.get(uid)).then((data) => {
+			this.fire(new Event(this.cls, this.eventOk, data));
+		}).catch((error) => {
+			this.fire(new Event(this.cls, this.eventFail, error));
+		});
+	}
+}
+exports.CrudProxy = CrudProxy;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-menu.html">menu</a></li><li><a href="module-mvc.html">mvc</a></li></ul><h3>Classes</h3><ul><li><a href="Anchor.html">Anchor</a></li><li><a href="AnchorCss.html">AnchorCss</a></li><li><a href="AnchorCssBootStrap.html">AnchorCssBootStrap</a></li><li><a href="AnchorCssW3.html">AnchorCssW3</a></li><li><a href="App.html">App</a></li><li><a href="ApplicationException.html">ApplicationException</a></li><li><a href="BaseController.html">BaseController</a></li><li><a href="BaseProxy.html">BaseProxy</a></li><li><a href="CrudProxy.html">CrudProxy</a></li><li><a href="CurrentViewState.html">CurrentViewState</a></li><li><a href="DataTypeMenuWrapper.html">DataTypeMenuWrapper</a></li><li><a href="DetailController.html">DetailController</a></li><li><a href="ElementValue.html">ElementValue</a></li><li><a href="Event.html">Event</a></li><li><a href="InputCss.html">InputCss</a></li><li><a href="InputCssBootStrap.html">InputCssBootStrap</a></li><li><a href="InputCssW3.html">InputCssW3</a></li><li><a href="ListController.html">ListController</a></li><li><a href="Menu.html">Menu</a></li><li><a href="MenuCtrl.html">MenuCtrl</a></li><li><a href="MenuProxy.html">MenuProxy</a></li><li><a href="Observer.html">Observer</a></li><li><a href="Repo.html">Repo</a></li><li><a href="Rest.html">Rest</a></li><li><a href="RestStore.html">RestStore</a></li><li><a href="Router.html">Router</a></li><li><a href="StateMachine.html">StateMachine</a></li><li><a href="Subject.html">Subject</a></li><li><a href="TableCss.html">TableCss</a></li><li><a href="TableCssBootStrap.html">TableCssBootStrap</a></li><li><a href="TableCssW3.html">TableCssW3</a></li><li><a href="Transition.html">Transition</a></li><li><a href="View.html">View</a></li><li><a href="ViewCss.html">ViewCss</a></li><li><a href="ViewCssW3.html">ViewCssW3</a></li></ul><h3>Interfaces</h3><ul><li><a href="Store.html">Store</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Mon Feb 03 2020 11:48:22 GMT+0100 (Central European Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
